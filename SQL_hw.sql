@@ -1,3 +1,6 @@
+# Erin Bentley - SQL homework (due 2/1/2020)
+
+
 use sakila;
 
 #1a. Display the first and last names of all actors from the table actor.
@@ -65,25 +68,38 @@ inner join film f ON inv.film_id = f.film_id
 where title = 'Hunchback Impossible';
 
 # 6e. Using the tables payment and customer and the JOIN command, list the total paid by each customer. List the customers alphabetically by last name:
-select CONCAT (last_name, ", ",first_name) as "Name", sum(p.amount) as "Total Amount Paid" from customer c
+select CONCAT (last_name, ", ",first_name) as "Name", sum(p.amount) as "Total Amount Paid (Dollars)" from customer c
 inner join payment p on c.customer_id = p.customer_id
 group by p.customer_id order by last_name asc;
 
 # 7a. The music of Queen and Kris Kristofferson have seen an unlikely resurgence. As an unintended consequence, films starting with the letters K and Q have also soared in popularity. Use subqueries to display the titles of movies starting with the letters K and Q whose language is English.
-select f.title
-from film f
-join language l on f.language_id #= l.language_id
-where (f.title like ("K%") OR f.title like ("Q%")) and l.name = "english";
+select title
+ from film f
+ where title like ("K%") or f.title like ("Q%")
+ and language_id in
+ (
+  SELECT language_id
+  FROM language
+  WHERE name = "English");
+
 
 # 7b. Use subqueries to display all actors who appear in the film Alone Trip.
-select first_name, last_name from actor
-join film_actor using(actor_id)
-join film using(film_id)
-where title = 'Alone Trip';
+select first_name, last_name
+ from actor a
+ where actor_id in
+ (
+  SELECT actor_id
+  FROM film_actor
+  WHERE film_id in
+  (
+   SELECT film_id
+   FROM film
+   WHERE title = 'Alone Trip'));
+
 
 # 7c. You want to run an email marketing campaign in Canada, for which you will need the names and email addresses of all Canadian customers. Use joins to retrieve this information.
-select c.name, c.email from customer
-join address a on a.address_id = s.address_id
+select customer.first_name, customer.last_name, customer.email from customer
+join address a on a.address_id = customer.address_id
 join city c on c.city_id = a.city_id
 join country co on co.country_id = c.country_id
 where co.country_id = "20";
@@ -95,14 +111,16 @@ join film_category fc on fc.film_id= f.film_id
 where fc.category_id = 8;
 
 # 7e. Display the most frequently rented movies in descending order.
-select f. title, i.inventory_id, count(i.inventory_id) as "Rental Count" from inventory i
+select f.title, count(f.title) as "Rental Count" from film f
+inner join inventory i on i.film_id = f.film_id
 inner join rental r on r.inventory_id = i.inventory_id
-inner join film f on f.film_id = i.film_id
-group by r.inventory_id order by "Rental Count" desc;
+group by title order by count(f.title) desc;
 
 # 7f. Write a query to display how much business, in dollars, each store brought in.
-select store, total_sales from sales_by_store;
-
+select s.store_id, sum(p.amount) as "Payment Amount (Dollars)" from payment p
+inner join staff on staff.staff_id = p.staff_id
+inner join store s on staff.store_id = s.store_id
+group by s.store_id;
 
 
 # 7g. Write a query to display for each store its store ID, city, and country.
@@ -113,28 +131,28 @@ join country co on co.country_id = c.country_id
 group by s.store_id;
 
 # 7h. List the top five genres in gross revenue in descending order. (Hint: you may need to use the following tables: category, film_category, inventory, payment, and rental.)
-select c.name, sum(p.amount) as "total_sales" from category c 
+select c.name, sum(p.amount) as "Total Sales (Dollars)" from category c 
 join film_category fc on fc.category_id = c.category_id
 join inventory i on i.film_id = fc.film_id
 join rental r on r.inventory_id = i.inventory_id
 join payment p on p.rental_id = r.rental_id
-group by c.name order by "total_sales" limit 5;
+group by c.name order by sum(p.amount) desc limit 5;
 
 # 8a. In your new role as an executive, you would like to have an easy way of viewing the Top five genres by gross revenue. Use the solution from the problem above to create a view. If you haven't solved 7h, you can substitute another query to create a view.
-create view as
-select c.name, sum(p.amount) as "total_sales" from category c 
+drop view Sales_by_Category;
+create view Sales_by_Category as
+select c.name, sum(p.amount) as "Total Sales (Dollars)" from category c 
 join film_category fc on fc.category_id = c.category_id
 join inventory i on i.film_id = fc.film_id
 join rental r on r.inventory_id = i.inventory_id
 join payment p on p.rental_id = r.rental_id
-group by c.name order by "total_sales" limit 5;
+group by c.name order by sum(p.amount) desc limit 5;
 
 # 8b. How would you display the view that you created in 8a?
-select * from sales_by_film_category limit 5;
+select * from Sales_by_Category;
 
 # 8c. You find that you no longer need the view top_five_genres. Write a query to delete it.
-drop xyz if exists ??
-
+drop view Sales_by_Category;
 
 
 	# Uploading Homework // To submit this homework using BootCampSpot:
